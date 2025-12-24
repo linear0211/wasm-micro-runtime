@@ -104,11 +104,11 @@ jobs:
       contents: write # for uploading release artifacts
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6.0.1
 
       - name: get cached LLVM libraries
         id: retrieve_llvm_libs
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ./core/deps/llvm/build/bin
@@ -151,7 +151,7 @@ jobs:
         working-directory: ${{ inputs.cwd }}
 
       - name: Compress the binary on Windows
-        if: inputs.runner == 'windows-latest'
+        if: inputs.runner == 'windows-2022'
         run: |
           tar -czf iwasm${{ matrix.suffix }}-${{ inputs.ver_num }}-${{ inputs.runner }}.tar.gz iwasm.exe
           Compress-Archive -Path iwasm.exe -DestinationPath iwasm${{ matrix.suffix }}-${{ inputs.ver_num }}-${{ inputs.runner }}.zip
@@ -159,7 +159,7 @@ jobs:
         working-directory: ${{ inputs.cwd }}/build/Release
 
       - name: compress the binary on non-Windows
-        if: inputs.runner != 'windows-latest'
+        if: inputs.runner != 'windows-2022'
         run: |
           # Follow the symlink to the actual binary file
           tar --dereference -czf iwasm${{ matrix.suffix }}-${{ inputs.ver_num }}-${{ inputs.runner }}.tar.gz iwasm

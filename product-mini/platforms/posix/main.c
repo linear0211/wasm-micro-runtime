@@ -80,7 +80,7 @@ print_help(void)
     printf("                           Use comma to separate, e.g. --enable-segue=i32.load,i64.store\n");
     printf("                           and --enable-segue means all flags are added.\n");
 #endif
-#endif /* WASM_ENABLE_JIT != 0*/
+#endif /* WASM_ENABLE_JIT != 0 */
 #if WASM_ENABLE_LINUX_PERF != 0
     printf("  --enable-linux-perf      Enable linux perf support. It works in aot and llvm-jit.\n");
 #endif
@@ -404,7 +404,7 @@ unregister_and_unload_native_libs(uint32 native_lib_count,
 static char *
 handle_module_path(const char *module_path)
 {
-    /* next character after = */
+    /* next character after '=' */
     return (strchr(module_path, '=')) + 1;
 }
 
@@ -583,7 +583,7 @@ main(int argc, char *argv[])
     uint32 heap_size = 16 * 1024;
 #endif
 #if WASM_ENABLE_SHARED_HEAP != 0
-    SharedHeapInitArgs heap_init_args;
+    SharedHeapInitArgs shared_heap_init_args;
     uint32 shared_heap_size = 0;
     void *shared_heap = NULL;
 #endif
@@ -962,10 +962,6 @@ main(int argc, char *argv[])
     }
 #endif
 
-#if WASM_ENABLE_LIBC_WASI != 0
-    libc_wasi_init(wasm_module, argc, argv, &wasi_parse_ctx);
-#endif
-
     if (!wasm_runtime_instantiation_args_create(&inst_args)) {
         printf("failed to create instantiate args\n");
         goto fail3;
@@ -974,6 +970,9 @@ main(int argc, char *argv[])
                                                            stack_size);
     wasm_runtime_instantiation_args_set_host_managed_heap_size(inst_args,
                                                                heap_size);
+#if WASM_ENABLE_LIBC_WASI != 0
+    libc_wasi_set_init_args(inst_args, argc, argv, &wasi_parse_ctx);
+#endif
 
     /* instantiate the module */
     wasm_module_inst = wasm_runtime_instantiate_ex2(
@@ -1025,15 +1024,16 @@ main(int argc, char *argv[])
 
 #if WASM_ENABLE_SHARED_HEAP != 0
     if (shared_heap_size > 0) {
-        memset(&heap_init_args, 0, sizeof(heap_init_args));
-        heap_init_args.size = shared_heap_size;
-        shared_heap = wasm_runtime_create_shared_heap(&heap_init_args);
+        memset(&shared_heap_init_args, 0, sizeof(shared_heap_init_args));
+        shared_heap_init_args.size = shared_heap_size;
+        shared_heap = wasm_runtime_create_shared_heap(&shared_heap_init_args);
+
         if (!shared_heap) {
             printf("Create preallocated shared heap failed\n");
             goto fail6;
         }
 
-        /* attach module instance 2 to the shared heap */
+        /* attach module instance to the shared heap */
         if (!wasm_runtime_attach_shared_heap(wasm_module_inst, shared_heap)) {
             printf("Attach shared heap failed.\n");
             goto fail6;

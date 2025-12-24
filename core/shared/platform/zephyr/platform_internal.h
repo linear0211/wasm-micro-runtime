@@ -7,8 +7,24 @@
 #ifndef _PLATFORM_INTERNAL_H
 #define _PLATFORM_INTERNAL_H
 
+/*
+ * Modern Zephyr uses zephyr/ namespace.
+ *
+ * Note: Cannot use KERNEL_VERSION_NUMBER here as it's defined in version.h
+ * which we're trying to include. Must use feature detection instead.
+ */
+#ifdef __has_include
+#if __has_include(<zephyr/autoconf.h>)
+#include <zephyr/autoconf.h>
+#include <zephyr/version.h>
+#else
 #include <autoconf.h>
 #include <version.h>
+#endif
+#else
+#include <autoconf.h>
+#include <version.h>
+#endif
 
 #if KERNEL_VERSION_NUMBER < 0x030200 /* version 3.2.0 */
 #include <zephyr.h>
@@ -189,12 +205,16 @@ float fmaxf(float x, float y);
 float rintf(float x);
 float fabsf(float x);
 float truncf(float x);
-int isnan(double x);
+int isnan_double(double x);
+int isnan_float(float x);
+#define isnan(x) (sizeof(x) == sizeof(double) ? isnan_double((double)x) : isnan_float(x))
 double pow(double x, double y);
 double scalbn(double x, int n);
 
 #ifndef BH_HAS_SIGNBIT
-int signbit(double x);
+int signbit_double(double x);
+int signbit_float(float x);
+#define signbit(x) (sizeof(x) == sizeof(double) ? signbit_double((double)x) : signbit_float(x))
 #endif
 
 unsigned long long int strtoull(const char *nptr, char **endptr, int base);
@@ -286,7 +306,9 @@ typedef struct timespec os_timespec;
 #define CLOCK_REALTIME 1
 #endif
 
+#ifndef CLOCK_MONOTONIC
 #define CLOCK_MONOTONIC 4
+#endif
 
 static inline int
 os_sched_yield(void)
